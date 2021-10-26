@@ -1,0 +1,80 @@
+int event_max=9;
+volatile unsigned int event_data[10]={0,0,0,0,0,0,0,0,0,0};
+
+int sys_eventopen(struct proc* p,void* v, register_t* retval){
+        struct sys_eventopen_args* uap=v;
+        int id=SCARG(uap,id);
+
+        if(id>event_max){
+                printf("Incorrect id given!\n");
+                *retval=-1;
+                return 0;
+        }
+
+        printf("Open: Added a new reference to the event\n");
+        atomic_add_int(event_data+id,1);        // add to ref_count
+        *retval=0;      //success
+
+        return 0;
+}
+int sys_eventclose(struct proc* p,void* v, register_t* retval){
+        struct sys_eventclose_args* uap=v;
+        int id=SCARG(uap,id);
+
+        if(id>event_max){
+                printf("Incorrect id given!\n");
+                *retval=-1;
+                return 0;
+        }
+
+        printf("Close: Event handle closed, ref decrement\n");
+        // Decrement reference
+        atomic_sub_int(event_data+id,1);
+
+        // Clear flag if last reference to this event
+        if(atomic_cas_uint(event_data+id,1<<31,0)==1<<31){
+                printf("Close: Flag was cleared\n");
+        }
+
+        *retval=0;
+        return 0;
+}
+
+int sys_eventwait(struct proc* p,void* v, register_t* retval){
+        struct sys_eventwait_args* uap=v;
+        int id=SCARG(uap,id);
+
+        if(id>event_max){
+                printf("Incorrect id given!\n");
+                *retval=-1;
+                return 0;
+        }
+
+        printf("Wait: Before while loop\n");
+        while(true){
+                unsigned int old_val=*(event_data+id);
+                if(old_val & (1<<31)) break;
+
+                int temp_ident;
+                tsleep(&temp_ident,PWAIT,"eventwait",1e+2);
+        }
+        printf("Wait: After while loop\n");
+
+        *retval=0;
+        return 0;
+}
+int sys_eventsignal(struct proc* p,void* v, register_t* retval){
+        struct sys_eventsignal_args* uap=v;
+        int id=SCARG(uap,id);
+
+        if(id>event_max){
+                printf("Incorrect id given!\n");
+                *retval=-1;
+                return 0;
+        }
+
+        printf("Signal: Set signal flag\n");
+        atomic_setbits_int(event_data+id,1<<31);
+
+        return 0;
+}

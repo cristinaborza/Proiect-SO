@@ -1,0 +1,5 @@
+333     STD             {int sys_eventopen(int id);}
+334     STD             {int sys_eventclose(int id);}
+335     STD             {int sys_eventwait(int id);}
+336     STD             {int sys_eventsignal(int id);}
+

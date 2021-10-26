@@ -1,0 +1,11 @@
+#include<unistd.h>
+#include<sys/syscall.h>
+#include<stdio.h>
+
+int main(int argc, char *argv[]) {
+        int x = atoi(argv[1]);
+        syscall(333, x);
+        syscall(336, x);
+        syscall(334, x);
+        return 0;
+}
